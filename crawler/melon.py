@@ -2,16 +2,18 @@ import requests
 from bs4 import BeautifulSoup
 
 #멜론 차트 크롤러
-#TOP100, HOT100, 일간(genre100), 주간(week100), 월간(month100)
+#TOP100, hot30(hot100 발매 30일), hot100(hot100 발매 100일), 일간(genre100), 주간(week100), 월간(month100)
 
 def get_melon_chart(chart_type="top100"):
     urls = {
         "top100": "https://www.melon.com/chart/index.htm",
-        "hot100": "https://www.melon.com/chart/hot100/index.htm",
+        "hot30": "https://www.melon.com/chart/hot100/index.htm?chartType=D30",
+        "hot100": "https://www.melon.com/chart/hot100/index.htm?chartType=D100",
         "genre100": "https://www.melon.com/chart/day/index.htm?classCd=GN0000",
         "week100": "https://www.melon.com/chart/week/index.htm",
         "month100": "https://www.melon.com/chart/month/index.htm",
     }
+
     url = urls.get(chart_type)
     if not url:
         return []
@@ -32,7 +34,7 @@ def get_melon_chart(chart_type="top100"):
             artist = song.select_one("div.ellipsis.rank02 a").text.strip()
 
             # "RIIZE" 아티스트의 곡만 필터링
-            if "제니" not in artist:
+            if "RIIZE" not in artist:
                 continue
 
             title = song.select_one("div.ellipsis.rank01 a").text.strip()
