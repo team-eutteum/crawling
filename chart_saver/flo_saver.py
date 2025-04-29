@@ -1,12 +1,16 @@
 from crawler.flo import get_flo_chart
 from database.mariadb_conn import get_connection
 from datetime import datetime
+from utils.logger import setup_logger
 
 def save_flo_chart_to_db(chart_type):
     chart_data = get_flo_chart(chart_type)
 
+    logger = setup_logger("flo")
+
     if not chart_data:
-        print("flo 차트 크롤링 결과 없음")
+        logger.info(f"[{chart_type}] flo 차트 크롤링 결과 없음")
+        # print("flo 차트 크롤링 결과 없음")
         return
 
     conn = get_connection()
@@ -29,6 +33,7 @@ def save_flo_chart_to_db(chart_type):
                     datetime.now()
                 ))
             conn.commit()
-        print(f"[{chart_type}] flo 차트 저장 완료")
+        logger.info(f"[{chart_type}] flo 차트 저장 완료")
+        # print(f"[{chart_type}] flo 차트 저장 완료")
     finally:
         conn.close()

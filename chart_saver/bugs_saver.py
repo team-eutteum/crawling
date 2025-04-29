@@ -1,12 +1,16 @@
 from crawler.bugs import get_bugs_chart
 from database.mariadb_conn import get_connection
 from datetime import datetime
+from utils.logger import setup_logger
 
 def save_bugs_chart_to_db(chart_type="realtime", date=None, hour=None):
     chart_data = get_bugs_chart(chart_type=chart_type, date=date, hour=hour)
 
+    logger = setup_logger("bugs")
+
     if not chart_data:
-        print("벅스 차트 크롤링 결과 없음")
+        logger.info(f"[{chart_type}] 벅스 차트 크롤링 결과 없음")
+        # print(f"[{chart_type}] 벅스 차트 크롤링 결과 없음")
         return
 
     conn = get_connection()
@@ -29,6 +33,7 @@ def save_bugs_chart_to_db(chart_type="realtime", date=None, hour=None):
                     datetime.now()
                 ))
             conn.commit()
-        print(f"[{chart_type}] 벅스 차트 저장 완료")
+        logger.info(f"[{chart_type}] 벅스 차트 저장 완료")
+        # print(f"[{chart_type}] 벅스 차트 저장 완료")
     finally:
         conn.close()
