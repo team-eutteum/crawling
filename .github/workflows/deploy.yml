@@ -29,6 +29,7 @@ jobs:
       - name: Copy Python project to EC2
         run: |
           rsync -avz \
+            --exclude='.git' \
             --exclude='__pycache__' \
             --exclude='.venv' \
             -e "ssh -i ec2_key.pem -o StrictHostKeyChecking=no" \
