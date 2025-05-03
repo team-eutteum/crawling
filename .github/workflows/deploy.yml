@@ -1,0 +1,49 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. GitHub 저장소 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      # 2. .env 파일 생성
+      - name: Create .env fle
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > .env 
+
+      # 3. SSH 키 디코딩 및 권한 설정
+      - name: Decode SSH Key
+        run: |
+          echo "${{ secrets.EC2_KEY }}" | base64 -d > ec2_key.pem
+          chmod 400 ec2_key.pem
+
+      # 4. Python 프로젝트를 EC2로 전송
+      - name: Copy Python project to EC2
+        run: |
+          rsync -avz \
+            --exclude='__pycache__' \
+            --exclude='.venv' \
+            -e "ssh -i ec2_key.pem -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ secrets.PROJECT_DIR }}
+
+      # 5. venv가 없을 경우에만 생성하고 requirements 설치
+      - name: Install requirements on EC2
+        run: |
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            set -e
+            cd ${{ secrets.PROJECT_DIR }} && \
+            if [ ! -d 'venv' ]; then
+              python3 -m venv venv
+            fi && \
+            source venv/bin/activate && \
+            pip install --upgrade pip && \
+            pip install -r requirements.txt
+          "
