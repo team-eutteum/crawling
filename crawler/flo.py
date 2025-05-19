@@ -62,6 +62,11 @@ def get_flo_chart(chart_type):
 
             change = track.get("rank", {}).get("rankBadge", 0)
 
+            if isinstance(change, int) and change > 0:
+                change = f"+{change}"
+            else:
+                change = str(change)
+
             chart_data.append({
                 "title": title,
                 "artist": artist,
