@@ -57,7 +57,7 @@ def get_melon_chart(chart_type="top100"):
                 elif "하락" in title_attr:
                     digits = rank_wrap.select_one("span.down").text.strip()
                     change = f"-{digits}"
-                elif "new" in title_attr.lower():
+                elif "순위 진입" in title_attr.lower():
                     change = "new"
 
             detail_url = f"https://www.melon.com/song/detail.htm?songId={song_id}"
