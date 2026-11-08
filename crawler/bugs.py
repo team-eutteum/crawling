@@ -1,3 +1,4 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 
@@ -10,24 +11,58 @@ date: 'yyyymmdd'
 hour: 'HH' (실시간 만 해당)
 """
 
+# 재시도 설정: 봇이 :01:30에 실행되므로 12초 안에 끝내기
+MAX_WAIT_SEC = 12
+RETRY_INTERVAL = 2
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+    "Referer": "https://music.bugs.co.kr/",
+}
+
+
+def _fetch_chart_rows(base_url, params):
+    """차트 행(tr)을 가져온다. 연결 끊김/차단 시 MAX_WAIT_SEC 동안 재시도. 실패하면 None."""
+    deadline = time.monotonic() + MAX_WAIT_SEC
+    attempt = 0
+
+    while True:
+        attempt += 1
+        t0 = time.monotonic()  # ← 추가: 시도 시작 시각
+        try:
+            res = requests.get(base_url, headers=HEADERS, params=params, timeout=(3, 5))
+            res.encoding = "utf-8"
+            if res.status_code == 200:
+                soup = BeautifulSoup(res.text, "html.parser")
+                songs = soup.select("table.list.trackList tbody tr")
+                if songs:
+                    return songs
+                print(f"[벅스] {attempt}회차: 차트 테이블 없음")
+            else:
+                print(f"[벅스] {attempt}회차: HTTP {res.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"[벅스] {attempt}회차: 연결 실패 ({time.monotonic() - t0:.1f}초) {e}")   # ← 수정
+        if time.monotonic() + RETRY_INTERVAL > deadline:
+            print(f"[벅스] {MAX_WAIT_SEC}초 내 수집 실패 ({params})")
+            return None
+        time.sleep(RETRY_INTERVAL)
+
+
 def get_bugs_chart(chart_type="realtime", date=None, hour=None):
-    headers = {"User-Agent": "Mozilla/5.0"}
     base_url = f"https://music.bugs.co.kr/chart/track/{chart_type}/total"
 
     params = {}
     if date:
         params["chartdate"] = date
-    if chart_type == "realtime" and hour:
-        params["charthour"] = hour
+    if chart_type == "realtime" and hour is not None:
+        params["charthour"] = str(hour).zfill(2)
 
-    res = requests.get(base_url, headers=headers, params=params)
-    res.encoding = "utf-8"
-    if res.status_code != 200:
-        print("벅스 차트 요청 실패")
+    songs = _fetch_chart_rows(base_url, params)
+    if songs is None:
         return []
-
-    soup = BeautifulSoup(res.text, "html.parser")
-    songs = soup.select("table.list.trackList tbody tr")
 
     chart_data = []
     for song in songs:
